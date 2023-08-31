@@ -1,7 +1,7 @@
 import { createCookieSessionStorage } from "@remix-run/node";
-import { MyStrategy } from "../src";
+import { KindeStrategy } from "../src";
 
-describe(MyStrategy, () => {
+describe(KindeStrategy, () => {
   let verify = jest.fn();
   // You will probably need a sessionStorage to test the strategy.
   let sessionStorage = createCookieSessionStorage({
@@ -13,8 +13,11 @@ describe(MyStrategy, () => {
   });
 
   test("should have the name of the strategy", () => {
-    let strategy = new MyStrategy({ something: "You may need" }, verify);
-    expect(strategy.name).toBe("change-me");
+    let strategy = new KindeStrategy(
+      { domain: "", callbackURL: "", clientID: "", clientSecret: "" },
+      verify
+    );
+    expect(strategy.name).toBe("kinde");
   });
 
   test.todo("Write more tests to check everything works as expected");
