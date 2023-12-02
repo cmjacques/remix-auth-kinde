@@ -15,7 +15,7 @@ describe(KindeStrategy, () => {
   test("should have the name of the strategy", () => {
     let strategy = new KindeStrategy(
       { domain: "", callbackURL: "", clientID: "", clientSecret: "" },
-      verify
+      verify,
     );
     expect(strategy.name).toBe("kinde");
   });

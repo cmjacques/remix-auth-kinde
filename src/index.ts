@@ -1,12 +1,12 @@
+import type { StrategyVerifyCallback } from "remix-auth";
 import type {
   OAuth2Profile,
   OAuth2StrategyVerifyParams,
 } from "remix-auth-oauth2";
 import { OAuth2Strategy } from "remix-auth-oauth2";
-import type { StrategyVerifyCallback } from "remix-auth";
 
-type KindeStartPage = "login" | "registration";
 type KindeScope = "email" | "offline" | "openid" | "profile";
+type KindeStartPage = "login" | "registration";
 
 // See: https://kinde.com/docs/developer-tools/using-kinde-without-an-sdk/#request-parameters
 export interface KindeStrategyOptions {
@@ -14,19 +14,22 @@ export interface KindeStrategyOptions {
   clientID: string;
   clientSecret: string;
   callbackURL: string;
-  scope?: KindeScope[] | KindeScope;
+  scope?: KindeScope[];
   audience?: string[];
   startPage?: KindeStartPage;
   orgCode?: string;
   isCreateOrg?: boolean;
   orgName?: string;
+  state?: string;
 }
 
 export interface KindeExtraParams extends Record<string, string | number> {
+  access_token: string;
   expires_in: 86_400;
   id_token: string;
+  refresh_token: string;
   scope: string;
-  token_type: "Bearer";
+  token_type: "bearer";
 }
 
 export interface KindeProfile extends OAuth2Profile {
@@ -59,45 +62,49 @@ export class KindeStrategy<User> extends OAuth2Strategy<
 > {
   name = "kinde";
 
-  private userInfoURL: string;
-  private scope: KindeScope[] | KindeScope;
-  private audience?: string[];
-  private startPage?: KindeStartPage;
-  private orgCode?: string;
-  private isCreateOrg?: boolean;
-  private orgName?: string;
+  protected scope?: string;
+  protected userInfoURL: string;
+  protected audience?: string[];
+  protected startPage?: KindeStartPage;
+  protected orgCode?: string;
+  protected isCreateOrg?: boolean;
+  protected orgName?: string;
+  protected state?: string;
 
   constructor(
     options: KindeStrategyOptions,
     verify: StrategyVerifyCallback<
       User,
       OAuth2StrategyVerifyParams<KindeProfile, KindeExtraParams>
-    >
+    >,
   ) {
     super(
       {
-        authorizationURL: `https://${options.domain}/oauth2/auth`,
-        tokenURL: `https://${options.domain}/oauth2/token`,
+        authorizationURL: `${options.domain}/oauth2/auth`,
+        tokenURL: `${options.domain}/oauth2/token`,
         clientID: options.clientID,
         clientSecret: options.clientSecret,
         callbackURL: options.callbackURL,
       },
-      verify
+      verify,
     );
 
-    this.userInfoURL = `https://${options.domain}/oauth2/v2/user_profile`;
-    this.scope = options.scope || ["email", "offline", "openid", "profile"];
+    this.userInfoURL = `${options.domain}/oauth2/v2/user_profile`;
+    this.scope = options.scope?.join(" ") ?? undefined;
     this.audience = options.audience || [];
     this.startPage = options.startPage || "login";
     this.orgCode = options.orgCode;
     this.isCreateOrg = options.isCreateOrg;
     this.orgName = options.orgName;
+    this.state = options.state;
   }
 
   protected authorizationParams(): URLSearchParams {
-    const params = new URLSearchParams({
-      scope: Array.isArray(this.scope) ? this.scope.join(" ") : this.scope,
-    });
+    const params = new URLSearchParams();
+
+    if (this.scope) {
+      params.append("scope", this.scope);
+    }
 
     if (this.audience) {
       for (const aud of this.audience) {
@@ -119,6 +126,10 @@ export class KindeStrategy<User> extends OAuth2Strategy<
 
     if (this.orgName) {
       params.append("org_name", this.orgName);
+    }
+
+    if (this.state) {
+      params.append("state", this.state);
     }
 
     return params;
